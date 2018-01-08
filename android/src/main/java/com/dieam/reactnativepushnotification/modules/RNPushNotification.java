@@ -58,11 +58,21 @@ public class RNPushNotification extends ReactContextBaseJavaModule implements Ac
         return constants;
     }
 
+
     public void onNewIntent(Intent intent) {
+        Bundle bundle = null;
+
         if (intent.hasExtra("notification")) {
-            Bundle bundle = intent.getBundleExtra("notification");
+            bundle = intent.getBundleExtra("notification");
             bundle.putBoolean("foreground", false);
             intent.putExtra("notification", bundle);
+        } else if (intent.hasExtra("google.message_id")) {
+            bundle = intent.getExtras();
+            bundle.putBoolean("foreground", false);
+            intent.putExtra("foreground", false);
+        }
+
+        if (bundle != null) {
             mJsDelivery.notifyNotification(bundle);
         }
     }
@@ -138,11 +148,19 @@ public class RNPushNotification extends ReactContextBaseJavaModule implements Ac
     @ReactMethod
     public void getInitialNotification(Promise promise) {
         WritableMap params = Arguments.createMap();
+
         Activity activity = getCurrentActivity();
         if (activity != null) {
             Intent intent = activity.getIntent();
-            Bundle bundle = intent.getBundleExtra("notification");
-            if (bundle != null) {
+
+            Bundle bundle = null;
+            if (intent.hasExtra("notification")) {
+                bundle = intent.getBundleExtra("notification");
+                bundle.putBoolean("foreground", false);
+                String bundleString = mJsDelivery.convertJSON(bundle);
+                params.putString("dataJSON", bundleString);
+            } else if (intent.hasExtra("google.message_id")) {
+                bundle = intent.getExtras();
                 bundle.putBoolean("foreground", false);
                 String bundleString = mJsDelivery.convertJSON(bundle);
                 params.putString("dataJSON", bundleString);
@@ -181,7 +199,7 @@ public class RNPushNotification extends ReactContextBaseJavaModule implements Ac
         mRNPushNotificationHelper.clearNotifications();
     }
 
-    @ReactMethod
+        @ReactMethod
     /**
      * Cancel scheduled notifications, and removes notifications from the notification centre.
      *
